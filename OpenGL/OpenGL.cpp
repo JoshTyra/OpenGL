@@ -253,11 +253,15 @@ int main() {
 
     glDisable(GL_CULL_FACE);
 
+    float scale = 0.25f; // Adjust this value as needed
+    model = glm::scale(model, glm::vec3(scale, scale, scale)); // Scale the model
+
+    // Apply rotation
+    // Rotate 90 degrees around the X axis
+    model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        float scale = 1.0f; // Adjust this value as needed
-        model = glm::scale(model, glm::vec3(scale, scale, scale)); // Scale the model
 
         processInput(window);
 

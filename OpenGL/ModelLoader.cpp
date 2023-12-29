@@ -23,6 +23,11 @@ LevelGeometry ModelLoader::loadModel(const std::string& path) {
     std::vector<Texture> loadedTextures;
     // Assuming single mesh for simplicity
     aiMesh* mesh = scene->mMeshes[0];
+
+    std::cout << "Mesh count: " << scene->mNumMeshes << std::endl;
+    std::cout << "Vertex count: " << mesh->mNumVertices << std::endl;
+    std::cout << "Face count: " << mesh->mNumFaces << std::endl;
+
     return processMesh(mesh, scene, loadedTextures);
 }
 
@@ -30,11 +35,27 @@ LevelGeometry ModelLoader::processMesh(aiMesh* mesh, const aiScene* scene, std::
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
 
-    // Process vertices
     for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
         Vertex vertex;
-        // Process vertex positions, normals, and texture coordinates
-        // Example: vertex.Position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
+
+        // Process vertex positions
+        if (mesh->HasPositions()) {
+            vertex.Position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
+        }
+
+        // Process vertex normals
+        if (mesh->HasNormals()) {
+            vertex.Normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+        }
+
+        // Process vertex texture coordinates
+        if (mesh->HasTextureCoords(0)) { // Assuming the first set of texture coordinates
+            vertex.TexCoords = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
+        }
+        else {
+            vertex.TexCoords = glm::vec2(0.0f, 0.0f);
+        }
+
         vertices.push_back(vertex);
     }
 
