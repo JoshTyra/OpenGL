@@ -15,8 +15,10 @@
 
 // Global variables
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+glm::vec3 cameraFront = -cameraDirection;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 float cameraSpeed = 5.0f;
@@ -184,81 +186,15 @@ int main() {
 
     LevelGeometry plane = ModelLoader::loadModel("media/models/plane.fbx");
 
-    // Define vertices for a simple box
-    GLfloat boxVertices[] = {
-        // positions          
-        -0.5f, -0.5f, -0.5f,  // Bottom-left
-         0.5f, -0.5f, -0.5f,  // Bottom-right
-         0.5f,  0.5f, -0.5f,  // Top-right
-         0.5f,  0.5f, -0.5f,  // Top-right
-        -0.5f,  0.5f, -0.5f,  // Top-left
-        -0.5f, -0.5f, -0.5f,  // Bottom-left
-
-        -0.5f, -0.5f,  0.5f,  // Bottom-left
-         0.5f, -0.5f,  0.5f,  // Bottom-right
-         0.5f,  0.5f,  0.5f,  // Top-right
-         0.5f,  0.5f,  0.5f,  // Top-right
-        -0.5f,  0.5f,  0.5f,  // Top-left
-        -0.5f, -0.5f,  0.5f,  // Bottom-left
-
-        -0.5f,  0.5f,  0.5f,  // Top-left
-        -0.5f,  0.5f, -0.5f,  // Top-left
-        -0.5f, -0.5f, -0.5f,  // Bottom-left
-        -0.5f, -0.5f, -0.5f,  // Bottom-left
-        -0.5f, -0.5f,  0.5f,  // Bottom-left
-        -0.5f,  0.5f,  0.5f,  // Top-left
-
-         0.5f,  0.5f,  0.5f,  // Top-right
-         0.5f,  0.5f, -0.5f,  // Top-right
-         0.5f, -0.5f, -0.5f,  // Bottom-right
-         0.5f, -0.5f, -0.5f,  // Bottom-right
-         0.5f, -0.5f,  0.5f,  // Bottom-right
-         0.5f,  0.5f,  0.5f,  // Top-right
-
-        -0.5f, -0.5f, -0.5f,  // Bottom-left
-         0.5f, -0.5f, -0.5f,  // Bottom-right
-         0.5f, -0.5f,  0.5f,  // Bottom-right
-         0.5f, -0.5f,  0.5f,  // Bottom-right
-        -0.5f, -0.5f,  0.5f,  // Bottom-left
-        -0.5f, -0.5f, -0.5f,  // Bottom-left
-
-        -0.5f,  0.5f, -0.5f,  // Top-left
-         0.5f,  0.5f, -0.5f,  // Top-right
-         0.5f,  0.5f,  0.5f,  // Top-right
-         0.5f,  0.5f,  0.5f,  // Top-right
-        -0.5f,  0.5f,  0.5f,  // Top-left
-        -0.5f,  0.5f, -0.5f   // Top-left
-    };
-
-    // Set up VAO and VBO for the box
-    GLuint boxVAO, boxVBO;
-    glGenVertexArrays(1, &boxVAO);
-    glGenBuffers(1, &boxVBO);
-    glBindVertexArray(boxVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, boxVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(boxVertices), boxVertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glBindVertexArray(0);
-
-    // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
-    glEnableVertexAttribArray(0);
-
-    // Texture Coord attribute
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0); // Unbind VAO
-
-    glDisable(GL_CULL_FACE);
-
-    float scale = 0.25f; // Adjust this value as needed
+    float scale = 1.0f; // Adjust this value as needed
     model = glm::scale(model, glm::vec3(scale, scale, scale)); // Scale the model
 
     // Apply rotation
     // Rotate 90 degrees around the X axis
     model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+    // Load the texture and store the ID
+    unsigned int textureID = loadTexture("media/textures/Rock_03_DIFF.png");
 
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -270,24 +206,17 @@ int main() {
 
         // Render the plane
         PlaneShader.use();
+        glBindTexture(GL_TEXTURE_2D, textureID); // Bind the actual texture
         PlaneShader.setMat4("view", view);
         PlaneShader.setMat4("projection", projection);
         PlaneShader.setMat4("model", model); // Adjust this matrix as needed
         plane.Draw(PlaneShader);
 
-        // In your render loop, draw the box
-        glBindVertexArray(boxVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36); // 36 vertices for the box
-        glBindVertexArray(0);
-
-        // Swap buffers and poll IO events
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    glDeleteVertexArrays(1, &skyboxVAO);
-    glDeleteBuffers(1, &skyboxVBO);
-
+    // Cleanup
     glfwTerminate();
     return 0;
 }

@@ -13,7 +13,7 @@ std::string extractFilename(const std::string& path) {
 
 LevelGeometry ModelLoader::loadModel(const std::string& path) {
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_CalcTangentSpace);
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         std::cerr << "ERROR::ASSIMP::" << importer.GetErrorString() << std::endl;
@@ -48,9 +48,9 @@ LevelGeometry ModelLoader::processMesh(aiMesh* mesh, const aiScene* scene, std::
             vertex.Normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
         }
 
-        // Process vertex texture coordinates
-        if (mesh->HasTextureCoords(0)) { // Assuming the first set of texture coordinates
+        if (mesh->HasTextureCoords(0)) {
             vertex.TexCoords = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
+            std::cout << "TexCoords[" << i << "]: " << vertex.TexCoords.x << ", " << vertex.TexCoords.y << std::endl;
         }
         else {
             vertex.TexCoords = glm::vec2(0.0f, 0.0f);
@@ -101,9 +101,17 @@ std::vector<Texture> ModelLoader::loadMaterialTextures(aiMaterial* mat, aiTextur
                 break;
             }
         }
-        if (!skip) {   // If texture hasn't been loaded already, load it
+        if (!skip) {
             Texture texture;
             texture.id = loadTexture(newPath.c_str()); // Use the new path
+            std::cout << "Loaded texture: " << newPath << ", ID: " << texture.id << std::endl;
+
+            // Check for OpenGL errors after loading the texture
+            GLenum err;
+            while ((err = glGetError()) != GL_NO_ERROR) {
+                std::cerr << "OpenGL error during texture loading: " << err << std::endl;
+            }
+
             texture.type = typeName;
             texture.path = newPath; // Store the new path
             textures.push_back(texture);
