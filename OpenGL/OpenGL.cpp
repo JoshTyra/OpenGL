@@ -19,6 +19,7 @@ glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
 glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 cameraFront = -cameraDirection;
+
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 float cameraSpeed = 5.0f;
@@ -118,6 +119,15 @@ int main() {
         return -1;
     }
 
+    // Parameters
+    float fov = glm::radians(45.0f); // Field of view (in radians)
+    float aspectRatio = (float)mode->width / (float)mode->height;
+    float nearPlane = 0.1f; // Near clipping plane
+    float farPlane = 100.0f; // Far clipping plane
+
+    // Enable VSync (1 = on, 0 = off)
+    glfwSwapInterval(1);
+
     // Make the window's context current
     glfwMakeContextCurrent(window);
 
@@ -137,8 +147,8 @@ int main() {
     // Configure global OpenGL state
     glEnable(GL_DEPTH_TEST);
 
-    // Projection matrix
-    glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)mode->width / (float)mode->height, 0.1f, 100.0f);
+    // Create projection matrix
+    glm::mat4 projection = glm::perspective(fov, aspectRatio, nearPlane, farPlane);
     // View matrix
     glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
     // Model matrix
@@ -186,7 +196,7 @@ int main() {
 
     LevelGeometry plane = ModelLoader::loadModel("media/models/plane.fbx");
 
-    float scale = 1.0f; // Adjust this value as needed
+    float scale = 0.25f; // Adjust this value as needed
     model = glm::scale(model, glm::vec3(scale, scale, scale)); // Scale the model
 
     // Apply rotation
