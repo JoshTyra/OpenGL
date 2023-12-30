@@ -83,7 +83,8 @@ GLuint loadCubemap(std::vector<std::string> faces) {
 }
 
 void drawSkybox(GLuint skyboxVAO, GLuint skyboxTexture, Shader& skyboxShader, const glm::mat4& view, const glm::mat4& projection) {
-    glDepthMask(GL_FALSE); // Disable depth write for skybox
+    // Change depth function so depth test passes when values are equal to depth buffer's content
+    glDepthFunc(GL_LEQUAL);
 
     skyboxShader.use();
     skyboxShader.setMat4("view", glm::mat4(glm::mat3(view))); // Remove translation from the view matrix
@@ -95,5 +96,6 @@ void drawSkybox(GLuint skyboxVAO, GLuint skyboxTexture, Shader& skyboxShader, co
     glDrawArrays(GL_TRIANGLES, 0, 36); // Draw the skybox
     glBindVertexArray(0);
 
-    glDepthMask(GL_TRUE); // Re-enable depth write
+    // Set depth function back to default
+    glDepthFunc(GL_LESS);
 }

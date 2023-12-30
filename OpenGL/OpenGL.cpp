@@ -182,6 +182,7 @@ int main() {
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 
+
     // Load cubemap texture for the skybox
     std::vector<std::string> faces{
         "media/skybox/clouds1_east.bmp",   // Right
@@ -214,7 +215,10 @@ int main() {
         // Update the view matrix based on the camera's current position and orientation
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
-        // Render the plane
+        // Render the skybox
+        drawSkybox(skyboxVAO, cubemapTexture, SkyboxShader, view, projection);
+
+        // Then render the plane
         PlaneShader.use();
         glBindTexture(GL_TEXTURE_2D, textureID); // Bind the actual texture
         PlaneShader.setMat4("view", view);
@@ -227,6 +231,11 @@ int main() {
     }
 
     // Cleanup
+    glDeleteVertexArrays(1, &skyboxVAO);
+    glDeleteBuffers(1, &skyboxVBO);
+    glDeleteTextures(1, &cubemapTexture); // If you created a cubemap texture for the skybox
+    glDeleteTextures(1, &textureID);      // If you loaded a texture for the plane
+
     glfwTerminate();
     return 0;
 }
