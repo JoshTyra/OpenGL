@@ -158,7 +158,10 @@ int main() {
     Shader SkyboxShader("shaders/skybox.vert", "shaders/skybox.frag");
 
     // Build and compile our shader program
-    Shader PlaneShader("shaders/simple_diffuse.vert", "shaders/simple_diffuse.frag");
+    Shader SimpleDiffuse("shaders/simple_diffuse.vert", "shaders/simple_diffuse.frag");
+
+    // Build and compile our shader program
+    Shader SimpleLightmap("shaders/simple_lightmap.vert", "shaders/simple_lightmap.frag");
 
     // Check for shader compilation/linking errors
     if (!SkyboxShader.isSuccessfullyCompiled()) {
@@ -167,8 +170,14 @@ int main() {
     }
 
     // Check for shader compilation/linking errors
-    if (!PlaneShader.isSuccessfullyCompiled()) {
+    if (!SimpleDiffuse.isSuccessfullyCompiled()) {
         std::cerr << "Failed to compile/link simple_diffuse shader" << std::endl;
+        return -1;
+    }
+
+    // Check for shader compilation/linking errors
+    if (!SimpleLightmap.isSuccessfullyCompiled()) {
+        std::cerr << "Failed to compile/link simple_lightmap shader" << std::endl;
         return -1;
     }
 
@@ -205,26 +214,39 @@ int main() {
     model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
     // Load the texture and store the ID
-    unsigned int textureID = loadTexture("media/textures/Rock_03_DIFF.png");
+    unsigned int diffuseTextureID = loadTexture("media/textures/Rock_03_DIFF.png");
+
+    // Load the texture and store the ID
+    unsigned int lightmapTextureID = loadTexture("media/textures/Plane001LightingMap.tga");
 
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         processInput(window);
 
-        // Update the view matrix based on the camera's current position and orientation
+        // Update view matrix
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
         // Render the skybox
         drawSkybox(skyboxVAO, cubemapTexture, SkyboxShader, view, projection);
 
-        // Then render the plane
-        PlaneShader.use();
-        glBindTexture(GL_TEXTURE_2D, textureID); // Bind the actual texture
-        PlaneShader.setMat4("view", view);
-        PlaneShader.setMat4("projection", projection);
-        PlaneShader.setMat4("model", model); // Adjust this matrix as needed
-        plane.Draw(PlaneShader);
+        // Then render the plane with SimpleLightmap shader
+        SimpleLightmap.use();
+        SimpleLightmap.setMat4("view", view);
+        SimpleLightmap.setMat4("projection", projection);
+        SimpleLightmap.setMat4("model", model);
+
+        // Activate texture unit 0 and bind the diffuse texture
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, diffuseTextureID); // Bind the diffuse texture
+        SimpleLightmap.setInt("diffuseTexture", 0); // Set the diffuse texture uniform
+
+        // Activate texture unit 1 and bind the lightmap texture
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, lightmapTextureID); // Bind the lightmap texture
+        SimpleLightmap.setInt("lightMapTexture", 1); // Set the lightmap texture uniform
+
+        // Draw the plane
+        plane.Draw(SimpleLightmap);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -234,7 +256,7 @@ int main() {
     glDeleteVertexArrays(1, &skyboxVAO);
     glDeleteBuffers(1, &skyboxVBO);
     glDeleteTextures(1, &cubemapTexture); // If you created a cubemap texture for the skybox
-    glDeleteTextures(1, &textureID);      // If you loaded a texture for the plane
+    glDeleteTextures(1, &diffuseTextureID);      // If you loaded a texture for the plane
 
     glfwTerminate();
     return 0;

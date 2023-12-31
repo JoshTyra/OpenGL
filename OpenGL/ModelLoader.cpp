@@ -56,6 +56,14 @@ LevelGeometry ModelLoader::processMesh(aiMesh* mesh, const aiScene* scene, std::
             vertex.TexCoords = glm::vec2(0.0f, 0.0f);
         }
 
+        // Process second set of texture coordinates for light mapping
+        if (mesh->HasTextureCoords(1)) { // Assuming the second UV set is in channel 1
+            vertex.LightMapTexCoords = glm::vec2(mesh->mTextureCoords[1][i].x, mesh->mTextureCoords[1][i].y);
+        }
+        else {
+            vertex.LightMapTexCoords = glm::vec2(0.0f, 0.0f);
+        }
+
         vertices.push_back(vertex);
     }
 
@@ -70,11 +78,21 @@ LevelGeometry ModelLoader::processMesh(aiMesh* mesh, const aiScene* scene, std::
 
     if (mesh->mMaterialIndex >= 0) {
         aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+
+        // Load diffuse textures
         std::vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse", loadedTextures);
         for (auto& texture : diffuseMaps) {
             geometry.addTexture(texture);
         }
-        // Repeat for other texture types if needed
+
+        // Load lightmap textures
+        // Assuming lightmaps are stored as a specific type, e.g., aiTextureType_LIGHTMAP
+        std::vector<Texture> lightMapTextures = loadMaterialTextures(material, aiTextureType_LIGHTMAP, "texture_lightmap", loadedTextures);
+        for (auto& texture : lightMapTextures) {
+            geometry.addTexture(texture);
+        }
+
+        // ... repeat for other texture types if needed
     }
 
     return geometry;
@@ -92,31 +110,30 @@ std::vector<Texture> ModelLoader::loadMaterialTextures(aiMaterial* mat, aiTextur
         // Construct the new path
         std::string newPath = "media/textures/" + filename;
 
-        // Check if texture was loaded before and if so, continue to next iteration
-        bool skip = false;
-        for (auto& loadedTexture : loadedTextures) {
-            if (std::strcmp(loadedTexture.path.data(), newPath.c_str()) == 0) {
-                textures.push_back(loadedTexture);
-                skip = true;
-                break;
-            }
-        }
-        if (!skip) {
-            Texture texture;
-            texture.id = loadTexture(newPath.c_str()); // Use the new path
-            std::cout << "Loaded texture: " << newPath << ", ID: " << texture.id << std::endl;
+        // Check if texture was loaded before to avoid duplicates
+        auto iter = std::find_if(loadedTextures.begin(), loadedTextures.end(),
+            [&newPath](const Texture& texture) {
+                return texture.path == newPath;
+            });
 
-            // Check for OpenGL errors after loading the texture
-            GLenum err;
-            while ((err = glGetError()) != GL_NO_ERROR) {
-                std::cerr << "OpenGL error during texture loading: " << err << std::endl;
-            }
-
-            texture.type = typeName;
-            texture.path = newPath; // Store the new path
-            textures.push_back(texture);
-            loadedTextures.push_back(texture);  // Add to loaded textures
+        if (iter != loadedTextures.end()) {
+            textures.push_back(*iter);
+            continue;
         }
+
+        // Load the texture
+        Texture texture;
+        texture.id = loadTexture(newPath.c_str());
+        if (texture.id == 0) {
+            std::cerr << "Failed to load texture: " << newPath << std::endl;
+            continue; // Skip this texture if loading failed
+        }
+        std::cout << "Loaded texture: " << newPath << ", ID: " << texture.id << std::endl;
+
+        texture.type = typeName;
+        texture.path = newPath;
+        textures.push_back(texture);
+        loadedTextures.push_back(texture);
     }
     return textures;
 }

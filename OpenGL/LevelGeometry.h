@@ -7,14 +7,14 @@
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include "shader.h"
-#include "Texture.h" // Include the Texture structure
+#include "Texture.h"
 
 // Vertex structure
 struct Vertex {
     glm::vec3 Position;
     glm::vec3 Normal;
     glm::vec2 TexCoords;
-    // Add more attributes if needed
+    glm::vec2 LightMapTexCoords;
 };
 
 // LevelGeometry class
