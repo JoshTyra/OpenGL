@@ -13,7 +13,7 @@
 
 class ModelLoader {
 public:
-    static LevelGeometry loadModel(const std::string& path);
+    static std::vector<LevelGeometry> loadModel(const std::string& path);
 
 private:
     static LevelGeometry processMesh(aiMesh* mesh, const aiScene* scene, std::vector<Texture>& loadedTextures);

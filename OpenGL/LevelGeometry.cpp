@@ -31,12 +31,12 @@ void LevelGeometry::setupMesh() {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
 
-    // Vertex texture coords
+    // Vertex texture coords (first UV channel)
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
 
-    // Assuming lightmap UVs are the fourth attribute in the Vertex structure
-    glEnableVertexAttribArray(3);
+    // Assuming LightMapTexCoords is properly set in your Vertex struct
+    glEnableVertexAttribArray(3); // Assuming location 3 for lightmap UVs
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, LightMapTexCoords));
 
     glBindVertexArray(0);
@@ -45,21 +45,34 @@ void LevelGeometry::setupMesh() {
 void LevelGeometry::Draw(Shader& shader) {
     shader.use();
 
-    // Assuming the first texture is always the diffuse texture
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textures[0].id); // Bind diffuse texture
-    shader.setInt("diffuseTexture", 0); // Set uniform for diffuse texture
+    for (unsigned int i = 0; i < textures.size(); ++i) {
+        glActiveTexture(GL_TEXTURE0 + i); // Activate proper texture unit before binding
+        // Retrieve texture number (the N in texture_diffuseN)
+        std::string number = std::to_string(i + 1); // Assuming you name them texture1, texture2, etc.
+        std::string name = textures[i].type;
 
-    // Assuming the second texture is always the lightmap
-    if (textures.size() > 1) {
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, textures[1].id); // Bind lightmap texture
-        shader.setInt("lightMapTexture", 1); // Set uniform for lightmap texture
+        // Set the sampler to the correct texture unit
+        shader.setInt(name + number, i);
+
+        // Bind the texture
+        glBindTexture(GL_TEXTURE_2D, textures[i].id);
     }
 
+    // Bind VAO (and thus VBOs and attribute configurations)
     glBindVertexArray(VAO);
+    // Draw mesh
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+    // Unbind VAO
     glBindVertexArray(0);
+
+    // Reset texture units to default state
+    for (unsigned int i = 0; i < textures.size(); ++i) {
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    // Reset to default active texture unit
+    glActiveTexture(GL_TEXTURE0);
 }
 
 void LevelGeometry::addTexture(const Texture& texture) {

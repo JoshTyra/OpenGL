@@ -204,20 +204,24 @@ int main() {
 
     GLuint cubemapTexture = loadCubemap(faces);
 
-    LevelGeometry plane = ModelLoader::loadModel("media/models/plane.fbx");
+    std::vector<LevelGeometry> geometries = ModelLoader::loadModel("media/models/plane.fbx");
 
+    // Define model matrix for the plane geometry
+    glm::mat4 planeModel = glm::mat4(1.0f);
     float scale = 0.25f; // Adjust this value as needed
-    model = glm::scale(model, glm::vec3(scale, scale, scale)); // Scale the model
-
-    // Apply rotation
-    // Rotate 90 degrees around the X axis
-    model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-
-    // Load the texture and store the ID
-    unsigned int diffuseTextureID = loadTexture("media/textures/Rock_03_DIFF.png");
+    planeModel = glm::scale(planeModel, glm::vec3(scale, scale, scale)); // Scale the model
+    planeModel = glm::rotate(planeModel, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f)); // Rotate the model
 
     // Load the texture and store the ID
     unsigned int lightmapTextureID = loadTexture("media/textures/Plane001LightingMap.tga");
+
+    // Assuming lightmapTextureID is the correct lightmap for all geometries
+    SimpleLightmap.use();
+    SimpleLightmap.setMat4("view", view);
+    SimpleLightmap.setMat4("projection", projection);
+    glActiveTexture(GL_TEXTURE1); // Use texture unit 1 for the lightmap
+    glBindTexture(GL_TEXTURE_2D, lightmapTextureID); // Bind the lightmap texture
+    SimpleLightmap.setInt("lightMapTexture", 1); // Set the lightmap texture uniform
 
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -229,24 +233,18 @@ int main() {
         // Render the skybox
         drawSkybox(skyboxVAO, cubemapTexture, SkyboxShader, view, projection);
 
-        // Then render the plane with SimpleLightmap shader
-        SimpleLightmap.use();
-        SimpleLightmap.setMat4("view", view);
-        SimpleLightmap.setMat4("projection", projection);
-        SimpleLightmap.setMat4("model", model);
+        // Render each geometry
+        for (LevelGeometry& geometry : geometries) {
+            SimpleLightmap.use(); // Use the lightmap shader
+            SimpleLightmap.setMat4("view", view); // Set the view matrix uniform
+            SimpleLightmap.setMat4("projection", projection); // Set the projection matrix uniform
+            SimpleLightmap.setMat4("model", planeModel); // Set the static model matrix uniform
 
-        // Activate texture unit 0 and bind the diffuse texture
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, diffuseTextureID); // Bind the diffuse texture
-        SimpleLightmap.setInt("diffuseTexture", 0); // Set the diffuse texture uniform
+            // Assuming that the lightmap texture is already bound outside the loop as you've done
 
-        // Activate texture unit 1 and bind the lightmap texture
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, lightmapTextureID); // Bind the lightmap texture
-        SimpleLightmap.setInt("lightMapTexture", 1); // Set the lightmap texture uniform
-
-        // Draw the plane
-        plane.Draw(SimpleLightmap);
+            // Call Draw on each LevelGeometry object
+            geometry.Draw(SimpleLightmap);
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -256,7 +254,7 @@ int main() {
     glDeleteVertexArrays(1, &skyboxVAO);
     glDeleteBuffers(1, &skyboxVBO);
     glDeleteTextures(1, &cubemapTexture); // If you created a cubemap texture for the skybox
-    glDeleteTextures(1, &diffuseTextureID);      // If you loaded a texture for the plane
+    glDeleteTextures(1, &lightmapTextureID);      // If you loaded a texture for the plane
 
     glfwTerminate();
     return 0;

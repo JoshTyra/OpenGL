@@ -11,9 +11,9 @@ std::string extractFilename(const std::string& path) {
     return path.substr(lastSlashPos + 1);
 }
 
-LevelGeometry ModelLoader::loadModel(const std::string& path) {
+std::vector<LevelGeometry> ModelLoader::loadModel(const std::string& path) {
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_CalcTangentSpace);
+    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         std::cerr << "ERROR::ASSIMP::" << importer.GetErrorString() << std::endl;
@@ -21,14 +21,14 @@ LevelGeometry ModelLoader::loadModel(const std::string& path) {
     }
 
     std::vector<Texture> loadedTextures;
-    // Assuming single mesh for simplicity
-    aiMesh* mesh = scene->mMeshes[0];
+    std::vector<LevelGeometry> meshes;
 
-    std::cout << "Mesh count: " << scene->mNumMeshes << std::endl;
-    std::cout << "Vertex count: " << mesh->mNumVertices << std::endl;
-    std::cout << "Face count: " << mesh->mNumFaces << std::endl;
+    for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
+        aiMesh* mesh = scene->mMeshes[i];
+        meshes.push_back(processMesh(mesh, scene, loadedTextures));
+    }
 
-    return processMesh(mesh, scene, loadedTextures);
+    return meshes;
 }
 
 LevelGeometry ModelLoader::processMesh(aiMesh* mesh, const aiScene* scene, std::vector<Texture>& loadedTextures) {
@@ -50,7 +50,6 @@ LevelGeometry ModelLoader::processMesh(aiMesh* mesh, const aiScene* scene, std::
 
         if (mesh->HasTextureCoords(0)) {
             vertex.TexCoords = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
-            std::cout << "TexCoords[" << i << "]: " << vertex.TexCoords.x << ", " << vertex.TexCoords.y << std::endl;
         }
         else {
             vertex.TexCoords = glm::vec2(0.0f, 0.0f);
